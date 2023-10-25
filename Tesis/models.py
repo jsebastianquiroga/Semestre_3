@@ -87,7 +87,7 @@ class Autoregresive:
             }
         )
     
-        columns = [
+        prediction_columns = [
             "y_AutoARIMA",
             "y_AutoETS",
             "y_AutoCES",
@@ -99,11 +99,14 @@ class Autoregresive:
             "y_TSB",
         ]
     
-        for col in columns:
-            self.Y_hat_df[col] = np.nan_to_num(self.Y_hat_df[col])
-            # Redondear las predicciones y convertirlas en enteros
+        # Procesar cada columna de predicción
+        for col in prediction_columns:
+            # Convertir NaNs a 0 y luego redondear y convertir a enteros
+            self.Y_hat_df[col] = np.nan_to_num(self.Y_hat_df[col], nan=0)
             self.Y_hat_df[col] = np.round(self.Y_hat_df[col]).astype(int)
+            # Asegurarse de que no haya valores negativos
             self.Y_hat_df[col] = np.where(self.Y_hat_df[col] < 0, 0, self.Y_hat_df[col])
+
 
     def merge_with_validacion(self):
         self.validacion = self.test.copy()  #
