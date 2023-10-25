@@ -142,7 +142,7 @@ class Autoregresive:
         self.setup_models_and_forecast(train_data)
         self.post_process()
         self.merge_with_validacion()
-        self.merged_df = np.nan_to_num(self.merged_df)
+        self.merged_df = self.merged_df.fillna(0).astype(int)
 
         return self.merged_df 
 
@@ -329,6 +329,9 @@ class GradientBoostingModels:
         validation_data_final, test_data_final = self.merge_predictions(
             predictions_validation, predictions_test
         )
+        validation_data_final = validation_data_final.fillna(0).astype(int)
+        test_data_final = test_data_final.fillna(0).astype(int)
+        
         return validation_data_final, test_data_final
 
     def save_models(self):
