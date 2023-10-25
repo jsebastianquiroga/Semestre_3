@@ -143,10 +143,10 @@ class Autoregresive:
         return self.merged_df
 
     def save_model(self):
-       today = datetime.now().strftime('%Y-%m-%d')
-       filename = f"Modelos/Autoregresive_{today}.joblib"
-       dump(self.models, filename)
-       print(f"Model saved as {filename}")
+        today = datetime.now().strftime('%Y-%m-%d')
+        filename = f"Modelos/Autoregresive_{today}.joblib"
+        dump(self.models, filename)
+        print(f"Model saved as {filename}")
 
 
 import lightgbm as lgb
