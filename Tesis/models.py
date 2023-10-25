@@ -101,9 +101,9 @@ class Autoregresive:
     
         for col in columns:
             self.Y_hat_df[col] = np.nan_to_num(self.Y_hat_df[col])
-            self.Y_hat_df[col] = np.where(self.Y_hat_df[col] < 0, 0, self.Y_hat_df[col])
             # Redondear las predicciones y convertirlas en enteros
-            self.Y_hat_df[col] = np.round(self.Y_hat_df[col]).astype(float)
+            self.Y_hat_df[col] = np.round(self.Y_hat_df[col]).astype(int)
+            self.Y_hat_df[col] = np.where(self.Y_hat_df[col] < 0, 0, self.Y_hat_df[col])
 
     def merge_with_validacion(self):
         self.validacion = self.test.copy()  #
@@ -271,6 +271,7 @@ class GradientBoostingModels:
 
         return predictions_validation, predictions_test
 
+
     def merge_predictions(self, predictions_validation, predictions_test):
         self.validacion = self.validacion.copy()
         self.validacion["key"] = (
@@ -306,16 +307,14 @@ class GradientBoostingModels:
             # Agrega aquí más nombres de columnas de predicción según sea necesario
         ]
 
-        # Reemplazar valores negativos y NaNs con 0, luego redondear a enteros
+        # Redondear a enteros, luego reemplazar valores negativos y NaNs con 0
         for col in columns:
             if col in self.validacion.columns:
-                self.validacion[col] = self.validacion[col].apply(
-                    lambda x: 0 if x < 0 or np.isnan(x) else np.round(x)
-                ).astype(float)
+                self.validacion[col] = self.validacion[col].round().astype(int)
+                self.validacion[col] = self.validacion[col].apply(lambda x: max(x, 0))
             if col in self.teste.columns:
-                self.teste[col] = self.teste[col].apply(
-                    lambda x: 0 if x < 0 or np.isnan(x) else np.round(x)
-                ).astype(float)
+                self.teste[col] = self.teste[col].round().astype(int)
+                self.teste[col] = self.teste[col].apply(lambda x: max(x, 0))
 
         self.validacion = self.validacion.drop("key", axis=1)
         self.teste = self.teste.drop("key", axis=1)
