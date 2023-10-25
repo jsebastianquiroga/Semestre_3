@@ -61,49 +61,49 @@ class Autoregresive:
 
     
     def post_process(self):
-    self.tiempo = self.df[["ds", "time_index"]].drop_duplicates()
-    self.Y_hat_df = self.Y_hat_df.reset_index()
-    self.Y_hat_df["ds"] = pd.to_datetime(self.Y_hat_df["ds"]) + pd.Timedelta(days=1)
-    self.Y_hat_df = self.Y_hat_df.merge(
-        self.tiempo[["ds", "time_index"]], left_on=["ds"], right_on=["ds"], how="left"
-    )
-
-    self.Y_hat_df["key"] = (
-        self.Y_hat_df["time_index"].astype(str)
-        + "_"
-        + self.Y_hat_df["unique_id"].astype(str)
-    )
-    self.Y_hat_df = self.Y_hat_df.rename(
-        columns={
-            "AutoARIMA": "y_AutoARIMA",
-            "AutoETS": "y_AutoETS",
-            "CES": "y_AutoCES",
-            "AutoTheta": "y_AutoTheta",
-            "SeasonalNaive": "y_SeasonalNaive",
-            "ADIDA": "y_ADIDA",
-            "CrostonClassic": "y_CrostonClassic",
-            "IMAPA": "y_IMAPA",
-            "TSB": "y_TSB",
-        }
-    )
-
-    columns = [
-        "y_AutoARIMA",
-        "y_AutoETS",
-        "y_AutoCES",
-        "y_AutoTheta",
-        "y_SeasonalNaive",
-        "y_ADIDA",
-        "y_CrostonClassic",
-        "y_IMAPA",
-        "y_TSB",
-    ]
-
-    for col in columns:
-        self.Y_hat_df[col] = np.nan_to_num(self.Y_hat_df[col])
-        self.Y_hat_df[col] = np.where(self.Y_hat_df[col] < 0, 0, self.Y_hat_df[col])
-        # Redondear las predicciones y convertirlas en enteros
-        self.Y_hat_df[col] = np.round(self.Y_hat_df[col]).astype(int)
+        self.tiempo = self.df[["ds", "time_index"]].drop_duplicates()
+        self.Y_hat_df = self.Y_hat_df.reset_index()
+        self.Y_hat_df["ds"] = pd.to_datetime(self.Y_hat_df["ds"]) + pd.Timedelta(days=1)
+        self.Y_hat_df = self.Y_hat_df.merge(
+            self.tiempo[["ds", "time_index"]], left_on=["ds"], right_on=["ds"], how="left"
+        )
+    
+        self.Y_hat_df["key"] = (
+            self.Y_hat_df["time_index"].astype(str)
+            + "_"
+            + self.Y_hat_df["unique_id"].astype(str)
+        )
+        self.Y_hat_df = self.Y_hat_df.rename(
+            columns={
+                "AutoARIMA": "y_AutoARIMA",
+                "AutoETS": "y_AutoETS",
+                "CES": "y_AutoCES",
+                "AutoTheta": "y_AutoTheta",
+                "SeasonalNaive": "y_SeasonalNaive",
+                "ADIDA": "y_ADIDA",
+                "CrostonClassic": "y_CrostonClassic",
+                "IMAPA": "y_IMAPA",
+                "TSB": "y_TSB",
+            }
+        )
+    
+        columns = [
+            "y_AutoARIMA",
+            "y_AutoETS",
+            "y_AutoCES",
+            "y_AutoTheta",
+            "y_SeasonalNaive",
+            "y_ADIDA",
+            "y_CrostonClassic",
+            "y_IMAPA",
+            "y_TSB",
+        ]
+    
+        for col in columns:
+            self.Y_hat_df[col] = np.nan_to_num(self.Y_hat_df[col])
+            self.Y_hat_df[col] = np.where(self.Y_hat_df[col] < 0, 0, self.Y_hat_df[col])
+            # Redondear las predicciones y convertirlas en enteros
+            self.Y_hat_df[col] = np.round(self.Y_hat_df[col]).astype(int)
 
     def merge_with_validacion(self):
         self.validacion = self.test.copy()  #
