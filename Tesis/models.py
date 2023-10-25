@@ -59,48 +59,51 @@ class Autoregresive:
 
         self.Y_hat_df = model.forecast(horizon)
 
+    
     def post_process(self):
-        self.tiempo = self.df[["ds", "time_index"]].drop_duplicates()
-        self.Y_hat_df = self.Y_hat_df.reset_index()
-        self.Y_hat_df["ds"] = pd.to_datetime(self.Y_hat_df["ds"]) + pd.Timedelta(days=1)
-        self.Y_hat_df = self.Y_hat_df.merge(
-            self.tiempo[["ds", "time_index"]], left_on=["ds"], right_on=["ds"], how="left"
-        )
+    self.tiempo = self.df[["ds", "time_index"]].drop_duplicates()
+    self.Y_hat_df = self.Y_hat_df.reset_index()
+    self.Y_hat_df["ds"] = pd.to_datetime(self.Y_hat_df["ds"]) + pd.Timedelta(days=1)
+    self.Y_hat_df = self.Y_hat_df.merge(
+        self.tiempo[["ds", "time_index"]], left_on=["ds"], right_on=["ds"], how="left"
+    )
 
-        self.Y_hat_df["key"] = (
-            self.Y_hat_df["time_index"].astype(str)
-            + "_"
-            + self.Y_hat_df["unique_id"].astype(str)
-        )
-        self.Y_hat_df = self.Y_hat_df.rename(
-            columns={
-                "AutoARIMA": "y_AutoARIMA",
-                "AutoETS": "y_AutoETS",
-                "CES": "y_AutoCES",
-                "AutoTheta": "y_AutoTheta",
-                "SeasonalNaive": "y_SeasonalNaive",
-                "ADIDA": "y_ADIDA",
-                "CrostonClassic": "y_CrostonClassic",
-                "IMAPA": "y_IMAPA",
-                "TSB": "y_TSB",
-            }
-        )
+    self.Y_hat_df["key"] = (
+        self.Y_hat_df["time_index"].astype(str)
+        + "_"
+        + self.Y_hat_df["unique_id"].astype(str)
+    )
+    self.Y_hat_df = self.Y_hat_df.rename(
+        columns={
+            "AutoARIMA": "y_AutoARIMA",
+            "AutoETS": "y_AutoETS",
+            "CES": "y_AutoCES",
+            "AutoTheta": "y_AutoTheta",
+            "SeasonalNaive": "y_SeasonalNaive",
+            "ADIDA": "y_ADIDA",
+            "CrostonClassic": "y_CrostonClassic",
+            "IMAPA": "y_IMAPA",
+            "TSB": "y_TSB",
+        }
+    )
 
-        columns = [
-            "y_AutoARIMA",
-            "y_AutoETS",
-            "y_AutoCES",
-            "y_AutoTheta",
-            "y_SeasonalNaive",
-            "y_ADIDA",
-            "y_CrostonClassic",
-            "y_IMAPA",
-            "y_TSB",
-        ]
+    columns = [
+        "y_AutoARIMA",
+        "y_AutoETS",
+        "y_AutoCES",
+        "y_AutoTheta",
+        "y_SeasonalNaive",
+        "y_ADIDA",
+        "y_CrostonClassic",
+        "y_IMAPA",
+        "y_TSB",
+    ]
 
-        for col in columns:
-            self.Y_hat_df[col] = np.nan_to_num(self.Y_hat_df[col])
-            self.Y_hat_df[col] = np.where(self.Y_hat_df[col] < 0, 0, self.Y_hat_df[col])
+    for col in columns:
+        self.Y_hat_df[col] = np.nan_to_num(self.Y_hat_df[col])
+        self.Y_hat_df[col] = np.where(self.Y_hat_df[col] < 0, 0, self.Y_hat_df[col])
+        # Redondear las predicciones y convertirlas en enteros
+        self.Y_hat_df[col] = np.round(self.Y_hat_df[col]).astype(int)
 
     def merge_with_validacion(self):
         self.validacion = self.test.copy()  #
@@ -297,36 +300,27 @@ class GradientBoostingModels:
 
         # list of columns to check for negative and NaN values
         columns = [
-            "y_AutoARIMA",
-            "y_AutoETS",
-            "y_AutoCES",
-            "y_AutoTheta",
-            "y_SeasonalNaive",
-            "y_ADIDA",
-            "y_CrostonClassic",
-            "y_IMAPA",
-            "y_TSB",
             "y_lightgbm",
             "y_xgboost",
             "y_catboost",
+            # Agrega aquí más nombres de columnas de predicción según sea necesario
         ]
 
-        # replace negative values and NaNs with 0 in the validation and test data
+        # Reemplazar valores negativos y NaNs con 0, luego redondear a enteros
         for col in columns:
             if col in self.validacion.columns:
                 self.validacion[col] = self.validacion[col].apply(
-                    lambda x: 0 if x < 0 or np.isnan(x) else x
-                )
+                    lambda x: 0 if x < 0 or np.isnan(x) else np.round(x)
+                ).astype(int)
             if col in self.teste.columns:
                 self.teste[col] = self.teste[col].apply(
-                    lambda x: 0 if x < 0 or np.isnan(x) else x
-                )
+                    lambda x: 0 if x < 0 or np.isnan(x) else np.round(x)
+                ).astype(int)
 
         self.validacion = self.validacion.drop("key", axis=1)
         self.teste = self.teste.drop("key", axis=1)
 
         return self.validacion, self.teste
-
     def pipeline(self):
         predictions_validation, predictions_test = self.predict()
         validation_data_final, test_data_final = self.merge_predictions(
