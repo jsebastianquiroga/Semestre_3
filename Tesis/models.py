@@ -103,7 +103,7 @@ class Autoregresive:
             self.Y_hat_df[col] = np.nan_to_num(self.Y_hat_df[col])
             self.Y_hat_df[col] = np.where(self.Y_hat_df[col] < 0, 0, self.Y_hat_df[col])
             # Redondear las predicciones y convertirlas en enteros
-            self.Y_hat_df[col] = np.round(self.Y_hat_df[col]).astype(int)
+            self.Y_hat_df[col] = np.round(self.Y_hat_df[col]).astype(float)
 
     def merge_with_validacion(self):
         self.validacion = self.test.copy()  #
@@ -311,11 +311,11 @@ class GradientBoostingModels:
             if col in self.validacion.columns:
                 self.validacion[col] = self.validacion[col].apply(
                     lambda x: 0 if x < 0 or np.isnan(x) else np.round(x)
-                ).astype(int)
+                ).astype(float)
             if col in self.teste.columns:
                 self.teste[col] = self.teste[col].apply(
                     lambda x: 0 if x < 0 or np.isnan(x) else np.round(x)
-                ).astype(int)
+                ).astype(float)
 
         self.validacion = self.validacion.drop("key", axis=1)
         self.teste = self.teste.drop("key", axis=1)
