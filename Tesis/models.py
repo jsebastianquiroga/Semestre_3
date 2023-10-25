@@ -142,8 +142,9 @@ class Autoregresive:
         self.setup_models_and_forecast(train_data)
         self.post_process()
         self.merge_with_validacion()
+        self.merged_df = np.nan_to_num(self.merged_df)
 
-        return self.merged_df
+        return self.merged_df 
 
     def save_model(self):
         today = datetime.now().strftime('%Y-%m-%d')
