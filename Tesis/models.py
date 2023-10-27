@@ -359,3 +359,39 @@ class GradientBoostingModels:
                 'encoders': self.encoders
             }
             joblib.dump(data_to_save, filename)
+
+
+
+import pandas as pd
+import numpy as np
+
+class TimeSeriesToSupervised:
+    def __init__(self, df, datetime_col, entity_col, value_col, n_features, n_targets=0, column_name='Semestre'):
+        self.df = df
+        self.datetime_col = datetime_col
+        self.entity_col = entity_col
+        self.value_col = value_col
+        self.n_features = n_features
+        self.n_targets = n_targets
+        self.column_name = column_name
+    
+    def transform(self):
+        self.df.sort_values(by=[self.entity_col, self.datetime_col], inplace=True)
+        
+        # Asegúrate de que el DataFrame tiene suficientes filas para crear lags
+        if len(self.df) <= self.n_features:
+            raise ValueError("El DataFrame no tiene suficientes filas para crear los lags requeridos.")
+
+        # Crear columnas de lag/semestre
+        for i in range(1, self.n_features + 1):
+            self.df[f'{self.value_col}_{self.column_name}_anterior_{i}'] = self.df.groupby(self.entity_col)[self.value_col].shift(i)
+
+        # Opcional: crear columnas para targets si es necesario
+        if self.n_targets > 0:
+            for i in range(1, self.n_targets + 1):
+                self.df[f'{self.value_col}_ahead{i}'] = self.df.groupby(self.entity_col)[self.value_col].shift(-i)
+
+        # Eliminar filas donde alguna de las columnas de lag/semestre tenga NaN
+        self.df.dropna(subset=[f'{self.value_col}_{self.column_name}_anterior_{i}' for i in range(1, self.n_features + 1)], inplace=True)
+
+        return self.df
