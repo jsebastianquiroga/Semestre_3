@@ -345,8 +345,6 @@ class GradientBoostingModels:
         validation_data_final, test_data_final = self.merge_predictions(
             predictions_validation, predictions_test
         )
-        validation_data_final = validation_data_final.fillna(0).astype(int)
-        test_data_final = test_data_final.fillna(0).astype(int)
         
         return validation_data_final, test_data_final
 
