@@ -160,9 +160,6 @@ class Autoregresive:
         for col in prediction_columns:
             self.merged_df[col] = pd.to_numeric(self.merged_df[col], errors='coerce').fillna(0)
 
-        # Ahora puedes convertir de forma segura toda la DataFrame a enteros
-        self.merged_df = self.merged_df.astype(int)
-
         return self.merged_df 
 
     def save_model(self):
