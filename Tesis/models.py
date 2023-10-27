@@ -137,12 +137,31 @@ class Autoregresive:
         )
         self.merged_df = self.merged_df.drop("key", axis=1)
 
+
     def run_workflow(self):
         train_data, test_data, SeriePronosticar = self.format_data()
         self.setup_models_and_forecast(train_data)
         self.post_process()
         self.merge_with_validacion()
-        self.merged_df = self.merged_df.fillna(0).astype(int)
+
+        prediction_columns = [
+            "y_AutoARIMA",
+            "y_AutoETS",
+            "y_AutoCES",
+            "y_AutoTheta",
+            "y_SeasonalNaive",
+            "y_ADIDA",
+            "y_CrostonClassic",
+            "y_IMAPA",
+            "y_TSB",
+        ]
+
+        # Procesar cada columna de predicción para convertir valores no numéricos a 0
+        for col in prediction_columns:
+            self.merged_df[col] = pd.to_numeric(self.merged_df[col], errors='coerce').fillna(0)
+
+        # Ahora puedes convertir de forma segura toda la DataFrame a enteros
+        self.merged_df = self.merged_df.astype(int)
 
         return self.merged_df 
 
