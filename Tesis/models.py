@@ -384,7 +384,7 @@ class TimeSeriesToSupervised:
 
         # Crear columnas de lag/semestre
         for i in range(1, self.n_features + 1):
-            self.df[f'{self.value_col}_{self.column_name}_anterior_{i}'] = self.df.groupby(self.entity_col)[self.value_col].shift(i)
+            self.df[f'{self.column_name}_anterior_{i}'] = self.df.groupby(self.entity_col)[self.value_col].shift(i)
 
         # Opcional: crear columnas para targets si es necesario
         if self.n_targets > 0:
