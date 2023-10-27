@@ -376,9 +376,10 @@ class TimeSeriesToSupervised:
         self.column_name = column_name
     
     def transform(self):
+        # Ordenar el DataFrame según las columnas especificadas
         self.df.sort_values(by=[self.entity_col, self.datetime_col], inplace=True)
         
-        # Asegúrate de que el DataFrame tiene suficientes filas para crear lags
+        # Verificar si el DataFrame tiene suficientes filas para crear los lags
         if len(self.df) <= self.n_features:
             raise ValueError("El DataFrame no tiene suficientes filas para crear los lags requeridos.")
 
@@ -386,12 +387,12 @@ class TimeSeriesToSupervised:
         for i in range(1, self.n_features + 1):
             self.df[f'{self.column_name}_anterior_{i}'] = self.df.groupby(self.entity_col)[self.value_col].shift(i)
 
-        # Opcional: crear columnas para targets si es necesario
+        # Crear columnas para los targets si se especificaron
         if self.n_targets > 0:
             for i in range(1, self.n_targets + 1):
                 self.df[f'{self.value_col}_ahead{i}'] = self.df.groupby(self.entity_col)[self.value_col].shift(-i)
 
-        # Eliminar filas donde alguna de las columnas de lag/semestre tenga NaN
-        self.df.dropna(subset=[f'{self.value_col}_{self.column_name}_anterior_{i}' for i in range(1, self.n_features + 1)], inplace=True)
+        # Eliminar las filas donde alguna de las columnas de lag tenga NaN
+        self.df.dropna(subset=[f'{self.column_name}_anterior_{i}' for i in range(1, self.n_features + 1)], inplace=True)
 
         return self.df
