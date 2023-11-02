@@ -46,15 +46,25 @@ class Autoregresive:
     
         return train_SeriePronosticar, test_SeriePronosticar, SeriePronosticar
 
+
     def setup_models_and_forecast(self, train_data):
         horizon = self.semestres_predecir
 
         # Si hay variables exógenas, selecciona modelos que las admitan
-        if self.exog_train is not None:
-            self.models = [
-                SARIMAX(endog=train_data['y'], exog=self.exog_train, order=(1, 1, 1), seasonal_order=(1, 1, 1, self.season_length)),
-                # Puedes agregar otros modelos que admitan variables exógenas aquí
-            ]
+        if self.exog is not None:
+            # Definir y entrenar modelos que admitan variables exógenas
+            sarimax_model = SARIMAX(
+                endog=self.train['y'],
+                exog=self.train[self.exog.columns.tolist()],
+                order=(1, 1, 1),
+                seasonal_order=(1, 1, 1, self.season_length)
+            ).fit()
+
+            # Agregar predicciones SARIMAX a Y_hat_df
+            self.Y_hat_df = pd.DataFrame({
+                'ds': self.test['ds'],
+                'y_SARIMAX': sarimax_model.forecast(steps=horizon, exog=self.test[self.exog.columns.tolist()])
+            })
         else:
             self.models = [
                 AutoARIMA(season_length=self.season_length),
