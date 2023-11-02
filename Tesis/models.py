@@ -39,12 +39,16 @@ class Autoregresive:
         if self.exog is not None:
             self.train = pd.concat([self.train, self.exog.iloc[:len(self.train)]], axis=1)
             self.test = pd.concat([self.test, self.exog.iloc[len(self.train):]], axis=1)
-        
-        train_SeriePronosticar = self.train[["ds", "unique_id", "y"] + self.exog.columns.tolist()].copy().fillna(0)
-        test_SeriePronosticar = self.test[["ds", "unique_id"] + self.exog.columns.tolist()].copy().fillna(0)
-        SeriePronosticar = self.df[["ds", "unique_id", "y"] + self.exog.columns.tolist()].copy().fillna(0)
+            exog_columns = self.exog.columns.tolist()
+        else:
+            exog_columns = []
+    
+        train_SeriePronosticar = self.train[["ds", "unique_id", "y"] + exog_columns].copy().fillna(0)
+        test_SeriePronosticar = self.test[["ds", "unique_id"] + exog_columns].copy().fillna(0)
+        SeriePronosticar = self.df[["ds", "unique_id", "y"] + exog_columns].copy().fillna(0)
     
         return train_SeriePronosticar, test_SeriePronosticar, SeriePronosticar
+
 
 
     def setup_models_and_forecast(self, train_data):
