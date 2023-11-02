@@ -135,7 +135,7 @@ class Autoregresive:
             "y_TSB",
         ]
         # Procesar cada columna de predicción
-        for col in prediction_columns:
+        for col in columns:
             # Convertir NaNs a 0 y luego redondear y convertir a enteros
             self.Y_hat_df[col] = np.nan_to_num(self.Y_hat_df[col], nan=0)
             self.Y_hat_df[col] = np.round(self.Y_hat_df[col]).astype(int)
