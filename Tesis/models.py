@@ -3,6 +3,7 @@ from statsforecast.models import (
     AutoARIMA, AutoETS, AutoCES, AutoTheta,
     SeasonalNaive, ADIDA, CrostonClassic, IMAPA, TSB
 )
+from statsmodels.tsa.statespace.sarimax import SARIMAX
 from sklearn.metrics import mean_squared_error
 import numpy as np
 import pandas as pd
@@ -11,7 +12,7 @@ from datetime import datetime
 
 
 class Autoregresive:
-    def __init__(self, train, test, df, season_length=2, semestres_predecir=5):
+    def __init__(self, train, test, df, season_length=2, semestres_predecir=5, exog=None):
         self.train = train
         self.test = test
         self.df = df
@@ -23,32 +24,47 @@ class Autoregresive:
         self.merged_df = None
         self.validacion = None
         self.merged_df = pd.DataFrame()
+        self.exog = exog
+
 
     def format_data(self):
         self.train['ds'] = pd.to_datetime(self.train['ano'].astype(str) + '-' + (self.train['semestre'] * 6).astype(str) + '-01')
         self.test['ds'] = pd.to_datetime(self.test['ano'].astype(str) + '-' + (self.test['semestre'] * 6).astype(str) + '-01')
         self.df['ds'] = pd.to_datetime(self.df['ano'].astype(str) + '-' + (self.df['semestre'] * 6).astype(str) + '-01')
-
-        train_SeriePronosticar = self.train[["ds", "unique_id", "y"]].copy().fillna(0)
-        test_SeriePronosticar = self.test[["ds", "unique_id"]].copy().fillna(0)
-        SeriePronosticar = self.df[["ds", "unique_id", "y"]].copy().fillna(0)
-
+        
+        if self.exog is not None:
+            self.train = pd.concat([self.train, self.exog.iloc[:len(self.train)]], axis=1)
+            self.test = pd.concat([self.test, self.exog.iloc[len(self.train):]], axis=1)
+        
+        train_SeriePronosticar = self.train[["ds", "unique_id", "y"] + self.exog.columns.tolist()].copy().fillna(0)
+        test_SeriePronosticar = self.test[["ds", "unique_id"] + self.exog.columns.tolist()].copy().fillna(0)
+        SeriePronosticar = self.df[["ds", "unique_id", "y"] + self.exog.columns.tolist()].copy().fillna(0)
+    
         return train_SeriePronosticar, test_SeriePronosticar, SeriePronosticar
 
     def setup_models_and_forecast(self, train_data):
         horizon = self.semestres_predecir
-        self.models = [
-            AutoARIMA(season_length=self.season_length),
-            AutoETS(season_length=self.season_length),
-            AutoCES(season_length=self.season_length),
-            AutoTheta(season_length=self.season_length),
-            SeasonalNaive(season_length=self.season_length),
-            ADIDA(),
-            CrostonClassic(),
-            IMAPA(),
-            TSB(alpha_d=0.2, alpha_p=0.2),
-        ]
 
+        # Si hay variables exógenas, selecciona modelos que las admitan
+        if self.exog_train is not None:
+            self.models = [
+                SARIMAX(endog=train_data['y'], exog=self.exog_train, order=(1, 1, 1), seasonal_order=(1, 1, 1, self.season_length)),
+                # Puedes agregar otros modelos que admitan variables exógenas aquí
+            ]
+        else:
+            self.models = [
+                AutoARIMA(season_length=self.season_length),
+                AutoETS(season_length=self.season_length),
+                AutoCES(season_length=self.season_length),
+                AutoTheta(season_length=self.season_length),
+                SeasonalNaive(season_length=self.season_length),
+                ADIDA(),
+                CrostonClassic(),
+                IMAPA(),
+                TSB(alpha_d=0.2, alpha_p=0.2),
+            ]
+
+        # El resto del método setup_models_and_forecast() sigue igual
         model = StatsForecast(
             df=train_data,
             models=self.models,
@@ -58,7 +74,6 @@ class Autoregresive:
         )
 
         self.Y_hat_df = model.forecast(horizon)
-
     
     def post_process(self):
         self.tiempo = self.df[["ds", "time_index"]].drop_duplicates()
@@ -67,7 +82,7 @@ class Autoregresive:
         self.Y_hat_df = self.Y_hat_df.merge(
             self.tiempo[["ds", "time_index"]], left_on=["ds"], right_on=["ds"], how="left"
         )
-    
+
         self.Y_hat_df["key"] = (
             self.Y_hat_df["time_index"].astype(str)
             + "_"
@@ -86,8 +101,8 @@ class Autoregresive:
                 "TSB": "y_TSB",
             }
         )
-    
-        prediction_columns = [
+
+        columns = [
             "y_AutoARIMA",
             "y_AutoETS",
             "y_AutoCES",
@@ -98,15 +113,10 @@ class Autoregresive:
             "y_IMAPA",
             "y_TSB",
         ]
-    
-        # Procesar cada columna de predicción
-        for col in prediction_columns:
-            # Convertir NaNs a 0 y luego redondear y convertir a enteros
-            self.Y_hat_df[col] = np.nan_to_num(self.Y_hat_df[col], nan=0)
-            self.Y_hat_df[col] = np.round(self.Y_hat_df[col]).astype(int)
-            # Asegurarse de que no haya valores negativos
-            self.Y_hat_df[col] = np.where(self.Y_hat_df[col] < 0, 0, self.Y_hat_df[col])
 
+        for col in columns:
+            self.Y_hat_df[col] = np.nan_to_num(self.Y_hat_df[col])
+            self.Y_hat_df[col] = np.where(self.Y_hat_df[col] < 0, 0, self.Y_hat_df[col])
 
     def merge_with_validacion(self):
         self.validacion = self.test.copy()  #
@@ -137,37 +147,19 @@ class Autoregresive:
         )
         self.merged_df = self.merged_df.drop("key", axis=1)
 
-
     def run_workflow(self):
         train_data, test_data, SeriePronosticar = self.format_data()
         self.setup_models_and_forecast(train_data)
         self.post_process()
         self.merge_with_validacion()
 
-        prediction_columns = [
-            "y_AutoARIMA",
-            "y_AutoETS",
-            "y_AutoCES",
-            "y_AutoTheta",
-            "y_SeasonalNaive",
-            "y_ADIDA",
-            "y_CrostonClassic",
-            "y_IMAPA",
-            "y_TSB",
-        ]
-
-        # Procesar cada columna de predicción para convertir valores no numéricos a 0
-        for col in prediction_columns:
-            self.merged_df[col] = pd.to_numeric(self.merged_df[col], errors='coerce').fillna(0)
-
-        return self.merged_df 
+        return self.merged_df
 
     def save_model(self):
-        today = datetime.now().strftime('%Y-%m-%d')
-        filename = f"Modelos/Autoregresive_{today}.joblib"
-        dump(self.models, filename)
-        print(f"Model saved as {filename}")
-
+       today = datetime.now().strftime('%Y-%m-%d')
+       filename = f"Modelos/Autoregresive_{today}.joblib"
+       dump(self.models, filename)
+       print(f"Model saved as {filename}")
 
 import lightgbm as lgb
 import xgboost as xgb
