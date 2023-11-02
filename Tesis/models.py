@@ -27,10 +27,14 @@ class Autoregresive:
         self.exog = exog
 
 
+
+    def semestre_to_month(semestre):
+        return "01" if semestre == 1 else "07"
+    
     def format_data(self):
-        self.train['ds'] = pd.to_datetime(self.train['ano'].astype(str) + '-' + (self.train['semestre'] * 6).astype(str) + '-01')
-        self.test['ds'] = pd.to_datetime(self.test['ano'].astype(str) + '-' + (self.test['semestre'] * 6).astype(str) + '-01')
-        self.df['ds'] = pd.to_datetime(self.df['ano'].astype(str) + '-' + (self.df['semestre'] * 6).astype(str) + '-01')
+        self.train['ds'] = pd.to_datetime(self.train['ano'].astype(str) + '-' + self.train['semestre'].apply(Autoregresive.semestre_to_month) + '-01')
+        self.test['ds'] = pd.to_datetime(self.test['ano'].astype(str) + '-' + self.test['semestre'].apply(Autoregresive.semestre_to_month) + '-01')
+        self.df['ds'] = pd.to_datetime(self.df['ano'].astype(str) + '-' + self.df['semestre'].apply(Autoregresive.semestre_to_month) + '-01')
         
         if self.exog is not None:
             self.train = pd.concat([self.train, self.exog.iloc[:len(self.train)]], axis=1)
@@ -161,12 +165,12 @@ class Autoregresive:
        dump(self.models, filename)
        print(f"Model saved as {filename}")
 
-    def semestre_to_month(semestre):
-        return "01" if semestre == 1 else "07"
-        
-        self.train['ds'] = pd.to_datetime(self.train['ano'].astype(str) + '-' + self.train['semestre'].apply(semestre_to_month) + '-01')
-        self.test['ds'] = pd.to_datetime(self.test['ano'].astype(str) + '-' + self.test['semestre'].apply(semestre_to_month) + '-01')
-        self.df['ds'] = pd.to_datetime(self.df['ano'].astype(str) + '-' + self.df['semestre'].apply(semestre_to_month) + '-01')
+
+
+
+
+    # Rest of your code...
+
 
 import lightgbm as lgb
 import xgboost as xgb
