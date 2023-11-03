@@ -109,26 +109,26 @@ class ModelEvaluator:
         df["y_25"] = df[self.models].quantile(0.25, axis=1)
         df["y_75"] = df[self.models].quantile(0.75, axis=1)
         return df
+        
+    def evaluate_models(self):
+        results = []
+        for model in self.models:
+            evaluator = ForecastEvaluator(self.validacion["y"], self.validacion[model])
+            maen = evaluator.mean_absolute_error()
+            mapen = evaluator.mean_absolute_percentage_error()
+            msen = evaluator.mean_squared_error()
+            rmsen = evaluator.root_mean_squared_error()
+            masen = evaluator.mean_absolute_scaled_error()
+            smapen = evaluator.symmetric_mape()
+            mdan = evaluator.mean_directional_accuracy()
+            cfen = evaluator.cumulative_forecast_error()
+            biasn = evaluator.forecast_bias()
+            tsn = evaluator.tracking_signal()
+            hit_rate_n = evaluator.hit_rate()
+            for_acc_n = evaluator.forecast_accuracy()
+            for_acc_sum = evaluator.forecast_accuracy_sum()
 
-     def evaluate_models(self):
-         results = []
-         for model in self.models:
-             evaluator = ForecastEvaluator(self.validacion["y"], self.validacion[model])
-             maen = evaluator.mean_absolute_error()
-             mapen = evaluator.mean_absolute_percentage_error()
-             msen = evaluator.mean_squared_error()
-             rmsen = evaluator.root_mean_squared_error()
-             masen = evaluator.mean_absolute_scaled_error()
-             smapen = evaluator.symmetric_mape()
-             mdan = evaluator.mean_directional_accuracy()
-             cfen = evaluator.cumulative_forecast_error()
-             biasn = evaluator.forecast_bias()
-             tsn = evaluator.tracking_signal()
-             hit_rate_n = evaluator.hit_rate()
-             for_acc_n = evaluator.forecast_accuracy()
-             for_acc_sum = evaluator.forecast_accuracy_sum()
-
-             d = {
+            d = {
                  "Modelo": [model],
                  "mae": [maen],
                  "mape": [mapen],
@@ -147,8 +147,8 @@ class ModelEvaluator:
 
              results.append(pd.DataFrame(data=d))
 
-         Resultados = pd.concat(results)
-         return Resultados
+        Resultados = pd.concat(results)
+        return Resultados
 
     def best_model_per_id(self, alfa=0.5, beta=0.5):
         best_model_dict = {}
