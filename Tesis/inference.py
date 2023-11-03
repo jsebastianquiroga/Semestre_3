@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from dtw import dtw
 
 
 class ForecastEvaluator:
@@ -61,6 +62,34 @@ class ForecastEvaluator:
         mad = np.mean(np.abs(forecast_errors))
         return np.sum(forecast_errors) / mad
 
+    def forecast_accuracy(self):
+        # Reemplazar valores reales de 0 con un número muy pequeño para evitar división por cero
+        y_actual_adj = np.where(self.y_actual == 0, 1e-10, self.y_actual)
+        accuracy = 1 - np.abs(self.y_actual - self.y_forecast) / y_actual_adj
+        return np.mean(accuracy) * 100
+
+    def forecast_accuracy_sum(self):
+        # Reemplazar valores reales de 0 con un número muy pequeño para evitar división por cero
+        y_actual_adj = np.where(self.y_actual == 0, 1e-10, self.y_actual)
+        # Calcular la suma total de y_actual y y_forecast
+        total_actual = np.sum(y_actual_adj)
+        total_forecast = np.sum(self.y_forecast)
+        # Calcular la exactitud del pronóstico en base a la suma total
+        accuracy = 1 - np.abs(total_actual - total_forecast) / total_actual
+        return accuracy * 100
+
+    def hit_rate(self, lower_bound=0.69, upper_bound=1.31):
+        """Calcula el hit rate basado en el rango especificado."""
+        correct_predictions = np.where(
+            (lower_bound < (self.y_forecast / self.y_actual))
+            & ((self.y_forecast / self.y_actual) < upper_bound),
+            1,
+            0,
+        )
+        return np.mean(correct_predictions) * 100
+
+
+
 
 class ModelEvaluator:
     def __init__(self, validacion, test):
@@ -75,76 +104,87 @@ class ModelEvaluator:
 
     def add_bagging_variables(self, df):
         df = df.copy()
-        # df["y_mediana"] = df[self.models].median(axis=1)
-        df["y_mediana"] = df[self.models].mean(axis=1)
+        # df["y_promedio"] = df[self.models].median(axis=1)
+        df["y_promedio"] = df[self.models].mean(axis=1)
         df["y_25"] = df[self.models].quantile(0.25, axis=1)
         df["y_75"] = df[self.models].quantile(0.75, axis=1)
         return df
 
-    def evaluate_models(self):
-        # Adding bagging variables to both validation and test data
-        # self.validacion = self.add_bagging_variables(self.validacion)
-        # self.test = self.add_bagging_variables(self.test)
-        # Including new variables in the models list
-        results = []
-        for model in self.models:
-            evaluator = ForecastEvaluator(self.validacion["y"], self.validacion[model])
-            maen = evaluator.mean_absolute_error()
-            mapen = evaluator.mean_absolute_percentage_error()
-            msen = evaluator.mean_squared_error()
-            rmsen = evaluator.root_mean_squared_error()
-            masen = evaluator.mean_absolute_scaled_error()
-            smapen = evaluator.symmetric_mape()
-            mdan = evaluator.mean_directional_accuracy()
-            cfen = evaluator.cumulative_forecast_error()
-            biasn = evaluator.forecast_bias()
-            tsn = evaluator.tracking_signal()
+     def evaluate_models(self):
+         results = []
+         for model in self.models:
+             evaluator = ForecastEvaluator(self.validacion["y"], self.validacion[model])
+             maen = evaluator.mean_absolute_error()
+             mapen = evaluator.mean_absolute_percentage_error()
+             msen = evaluator.mean_squared_error()
+             rmsen = evaluator.root_mean_squared_error()
+             masen = evaluator.mean_absolute_scaled_error()
+             smapen = evaluator.symmetric_mape()
+             mdan = evaluator.mean_directional_accuracy()
+             cfen = evaluator.cumulative_forecast_error()
+             biasn = evaluator.forecast_bias()
+             tsn = evaluator.tracking_signal()
+             hit_rate_n = evaluator.hit_rate()
+             for_acc_n = evaluator.forecast_accuracy()
+             for_acc_sum = evaluator.forecast_accuracy_sum()
 
-            self.validacion["model_HT"] = np.where(
-                (0.69 < (self.validacion[model] / self.validacion["y"]))
-                & ((self.validacion[model] / self.validacion["y"]) < 1.31),
-                1,
-                0,
-            )
-            hit_rate_n = (
-                self.validacion["model_HT"].sum() / self.validacion["model_HT"].count()
-            )
-            self.validacion = self.validacion.drop("model_HT", axis=1)
+             d = {
+                 "Modelo": [model],
+                 "mae": [maen],
+                 "mape": [mapen],
+                 "mse": [msen],
+                 "rmse": [rmsen],
+                 "mase": [masen],
+                 "smape": [smapen],
+                 "mda": [mdan],
+                 "cfe": [cfen],
+                 "bias": [biasn],
+                 "ts": [tsn],
+                 "for_acc_pro": [for_acc_n],
+                 "for_acc_sum": [for_acc_sum],
+                 "hit_rate": [hit_rate_n],
+             }
 
-            d = {
-                "Modelo": [model],
-                "mae": [maen],
-                "mape": [mapen],
-                "mse": [msen],
-                "rmse": [rmsen],
-                "mase": [masen],
-                "smape": [smapen],
-                "mda": [mdan],
-                "cfe": [cfen],
-                "bias": [biasn],
-                "ts": [tsn],
-                "hit_rate": [hit_rate_n],
-            }
+             results.append(pd.DataFrame(data=d))
 
-            results.append(pd.DataFrame(data=d))
+         Resultados = pd.concat(results)
+         return Resultados
 
-        Resultados = pd.concat(results)
-        return Resultados
-
-    def best_model_per_id(self):
+    def best_model_per_id(self, alfa=0.5, beta=0.5):
         best_model_dict = {}
 
         for unique_id in self.validacion["unique_id"].unique():
             id_subset = self.validacion[self.validacion["unique_id"] == unique_id]
-            best_rmse = np.inf
+            best_ponderado = np.inf
             best_model = None
+
             for model in self.models:
-                evaluator = ForecastEvaluator(id_subset["y"], id_subset[model])
+                model_preds = id_subset[model].to_numpy()
+                actual_values = id_subset["y"].to_numpy()
+
+                # Calcular RMSE
+                evaluator = ForecastEvaluator(actual_values, model_preds)
                 rmsen = evaluator.root_mean_squared_error()
-                if rmsen < best_rmse:
-                    best_rmse = rmsen
+
+                # Calcular DTW distance
+                # Usar la función de distancia como np.linalg.norm(x - y, ord=1)
+                dist, _, _, _ = dtw(
+                    actual_values,
+                    model_preds,
+                    dist=lambda x, y: np.linalg.norm(x.flatten() - y.flatten(), ord=1),
+                )
+
+                # Ponderación combinada de RMSE y DTW distance
+                # ponderado = alfa * rmsen + beta * dist
+                # Ponderación del RMSE por el dist
+                ponderado = rmsen * dist
+
+                if ponderado < best_ponderado:
+                    best_ponderado = ponderado
                     best_model = model
+
             best_model_dict[unique_id] = best_model
+
         self.best_model_dict = best_model_dict
         return self.best_model_dict
 
@@ -174,7 +214,7 @@ class ModelEvaluator:
         self.test = self.add_bagging_variables(self.test)
 
         # Update the models to include the new variables
-        bagging_vars = ["y_mediana", "y_25", "y_75"]
+        bagging_vars = ["y_promedio", "y_25", "y_75"]
         self.models += bagging_vars
         # Evaluate models
         model_evaluation = self.evaluate_models()
