@@ -208,6 +208,17 @@ class GradientBoostingModels:
         self.validation = self.adapt_dates(validation)
         self.test = self.adapt_dates(test)
 
+        if 'ds' not in validacion:
+            self.validacion = self.adapt_dates(validacion)
+        else:
+            self.validacion = validacion
+            
+        if 'ds' not in teste:
+            self.teste = self.adapt_dates(teste)
+        else:
+            self.teste = teste
+
+
         self.train = train
         self.validation = validation
         self.test = test
