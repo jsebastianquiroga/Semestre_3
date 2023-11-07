@@ -370,7 +370,23 @@ class GradientBoostingModels:
                 'encoders': self.encoders
             }
             joblib.dump(data_to_save, filename)
+    def calculate_shap_values(self, X_train):
+        shap_values = {}
+        for name, model in self.models.items():
+            if name in ['lightgbm', 'xgboost']:
+                explainer = shap.TreeExplainer(model)
+                shap_values[name] = explainer.shap_values(X_train)
+            elif name == 'catboost':
+                explainer = shap.TreeExplainer(model)
+                shap_values[name] = explainer.shap_values(Pool(X_train))
+        return shap_values
 
+    def calculate_and_plot_shap_values(self, X_train):
+        shap_values = self.calculate_shap_values(X_train)
+        for name, values in shap_values.items():
+            plt.figure()
+            shap.summary_plot(values, X_train)
+            plt.savefig(f"shap_summary_{name}.png")  # Guardar la figura
 
 
 import pandas as pd
