@@ -399,7 +399,9 @@ class GradientBoostingModels:
         for name, values in shap_values.items():
             plt.figure()
             shap.summary_plot(values, X_train)
+            plt.title(f"SHAP Summary Plot for {name.capitalize()} Model")  # Agregar título
             plt.savefig(f"shap_summary_{name}.png")  # Guardar la figura
+
 
 
 import pandas as pd
