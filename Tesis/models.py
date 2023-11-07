@@ -239,6 +239,8 @@ class GradientBoostingModels:
         }
         self.encoders = {}
 
+        self.selected_features = None
+
     
     def preprocess_data(self):
         # Comprobar y eliminar la columna 'ds' solo si existe en los DataFrame
@@ -267,26 +269,50 @@ class GradientBoostingModels:
 
 
 
+#    def feature_selection(self):
+#        X_train, y_train = self.train.drop("y", axis=1), self.train["y"]
+
+        # Using RandomForestRegressor for feature selection
+#        model = RandomForestRegressor()
+#        rfecv = RFECV(
+#            estimator=model, step=1, cv=KFold(10), scoring="neg_mean_squared_error"
+#        )
+#        rfecv.fit(X_train, y_train)
+
+#        selected_features = X_train.columns[rfecv.support_]
+
+        # Keep only selected features
+ #       self.train = self.train[["y"] + list(selected_features)]
+ #       self.validation = (
+ #           self.validation[["y"] + list(selected_features)]
+ #           if "y" in self.validation.columns
+ #           else self.validation[list(selected_features)]
+ #       )
+ #       self.test = self.test[list(selected_features)]
+ #       self.selected_features = selected_features
+
+
     def feature_selection(self):
         X_train, y_train = self.train.drop("y", axis=1), self.train["y"]
-
+    
         # Using RandomForestRegressor for feature selection
         model = RandomForestRegressor()
         rfecv = RFECV(
             estimator=model, step=1, cv=KFold(10), scoring="neg_mean_squared_error"
         )
         rfecv.fit(X_train, y_train)
-
-        selected_features = X_train.columns[rfecv.support_]
-
+    
+        # Store the selected features
+        self.selected_features = X_train.columns[rfecv.support_].tolist()
+    
         # Keep only selected features
-        self.train = self.train[["y"] + list(selected_features)]
+        self.train = self.train[["y"] + self.selected_features]
         self.validation = (
-            self.validation[["y"] + list(selected_features)]
+            self.validation[["y"] + self.selected_features]
             if "y" in self.validation.columns
-            else self.validation[list(selected_features)]
+            else self.validation[self.selected_features]
         )
-        self.test = self.test[list(selected_features)]
+        self.test = self.test[self.selected_features]
 
     def train_models(self):
         self.preprocess_data()
@@ -394,12 +420,21 @@ class GradientBoostingModels:
                 shap_values[name] = explainer.shap_values(Pool(X_train))
         return shap_values
 
-    def calculate_and_plot_shap_values(self, X_train):
+#    def calculate_and_plot_shap_values(self, X_train):
+#        shap_values = self.calculate_shap_values(X_train)
+#        for name, values in shap_values.items():
+#            plt.figure()
+#            shap.summary_plot(values, X_train)
+#            plt.title(f"SHAP Summary Plot for {name.capitalize()} Model")  # Agregar título
+#            plt.savefig(f"shap_summary_{name}.png")  # Guardar la figura
+    def calculate_and_plot_shap_values(self):
+        # Asegúrate de usar las características seleccionadas para calcular los valores SHAP
+        X_train = self.train.drop("y", axis=1)[self.selected_features]
         shap_values = self.calculate_shap_values(X_train)
         for name, values in shap_values.items():
             plt.figure()
-            shap.summary_plot(values, X_train)
-            plt.title(f"SHAP Summary Plot for {name.capitalize()} Model")  # Agregar título
+            shap.summary_plot(values, X_train, max_display=len(self.selected_features))
+            plt.title(f"SHAP Summary Plot for {name.capitalize()} Model")  # Agrega título
             plt.savefig(f"shap_summary_{name}.png")  # Guardar la figura
 
 
