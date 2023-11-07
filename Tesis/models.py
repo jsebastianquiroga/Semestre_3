@@ -432,11 +432,11 @@ class GradientBoostingModels:
         X_train = self.train.drop("y", axis=1)[self.selected_features]
         shap_values = self.calculate_shap_values(X_train)
         for name, values in shap_values.items():
-            plt.figure()
-            shap.summary_plot(values, X_train, max_display=len(self.selected_features))
-            plt.title(f"SHAP Summary Plot for {name.capitalize()} Model")  # Agrega título
-            plt.savefig(f"shap_summary_{name}.png")  # Guardar la figura
-
+            plt.figure()  # Crea una nueva figura para el gráfico actual
+            shap.summary_plot(values, X_train, show=False)  # Genera el gráfico sin mostrarlo
+            plt.title(f"SHAP Summary Plot for {name.capitalize()} Model")  # Configura el título
+            plt.savefig(f"shap_summary_{name}.png")  # Guarda la figura
+            plt.close()  # Cierra la figura para liberar memoria
 
 
 import pandas as pd
