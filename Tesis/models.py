@@ -206,26 +206,32 @@ class MyLabelEncoder(LabelEncoder):
 
 class GradientBoostingModels:
     def __init__(self, train, validation, test, validacion, teste):
-        self.train = self.adapt_dates(train)
-        self.validation = self.adapt_dates(validation)
-        self.test = self.adapt_dates(test)
+        # Solo adaptar las fechas si 'ds' no está en los DataFrame
+        if 'ds' not in train.columns:
+            self.train = self.adapt_dates(train)
+        else:
+            self.train = train
 
-        if 'ds' not in validacion:
+        if 'ds' not in validation.columns:
+            self.validation = self.adapt_dates(validation)
+        else:
+            self.validation = validation
+        
+        if 'ds' not in test.columns:
+            self.test = self.adapt_dates(test)
+        else:
+            self.test = test
+
+        if 'ds' not in validacion.columns:
             self.validacion = self.adapt_dates(validacion)
         else:
             self.validacion = validacion
             
-        if 'ds' not in teste:
+        if 'ds' not in teste.columns:
             self.teste = self.adapt_dates(teste)
         else:
             self.teste = teste
 
-
-        self.train = train
-        self.validation = validation
-        self.test = test
-        self.validacion = validacion
-        self.teste = teste
         self.models = {
             "lightgbm": lgb.LGBMRegressor(),
             "xgboost": xgb.XGBRegressor(),
@@ -233,10 +239,15 @@ class GradientBoostingModels:
         }
         self.encoders = {}
 
+    
     def preprocess_data(self):
-       self.train.drop("ds", axis=1, inplace=True)
-       self.validation.drop("ds", axis=1, inplace=True)
-       self.test.drop("ds", axis=1, inplace=True)
+        # Comprobar y eliminar la columna 'ds' solo si existe en los DataFrame
+        if 'ds' in self.train.columns:
+            self.train.drop("ds", axis=1, inplace=True)
+        if 'ds' in self.validation.columns:
+            self.validation.drop("ds", axis=1, inplace=True)
+        if 'ds' in self.test.columns:
+            self.test.drop("ds", axis=1, inplace=True)
 
        for col in self.train.columns:
            if self.train[col].dtype == "object":
