@@ -183,6 +183,7 @@ from lightgbm import LGBMRegressor
 import os
 import joblib
 from datetime import datetime
+import shap
 
 
 class MyLabelEncoder(LabelEncoder):
