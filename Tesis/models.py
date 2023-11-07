@@ -248,9 +248,9 @@ class GradientBoostingModels:
             self.validation.drop("ds", axis=1, inplace=True)
         if 'ds' in self.test.columns:
             self.test.drop("ds", axis=1, inplace=True)
-
-       for col in self.train.columns:
-           if self.train[col].dtype == "object":
+        
+        for col in self.train.columns:
+            if self.train[col].dtype == "object":
                encoder = MyLabelEncoder()
                self.train[col] = encoder.fit_transform(self.train[col])
                self.encoders[col] = encoder
