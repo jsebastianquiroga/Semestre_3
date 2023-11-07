@@ -252,39 +252,28 @@ class GradientBoostingModels:
         df['ds'] = pd.to_datetime(df['ano'].astype(str) + '-' + (df['semestre'] * 6).astype(str) + '-01')
         return df
 
+
+
     def feature_selection(self):
-        # Esta modificación supone que quieres hacer la selección de características para cada modelo por separado
-        self.selected_features = {}
-        
-        for name, model in self.models.items():
-            X_train, y_train = self.train.drop("y", axis=1), self.train["y"]
+        X_train, y_train = self.train.drop("y", axis=1), self.train["y"]
 
-            rfecv = RFECV(
-                estimator=model, step=1, cv=KFold(10), scoring="neg_mean_squared_error"
-            )
-            rfecv.fit(X_train, y_train)
+        # Using RandomForestRegressor for feature selection
+        model = RandomForestRegressor()
+        rfecv = RFECV(
+            estimator=model, step=1, cv=KFold(10), scoring="neg_mean_squared_error"
+        )
+        rfecv.fit(X_train, y_train)
 
-            self.selected_features[name] = X_train.columns[rfecv.support_].tolist()
+        selected_features = X_train.columns[rfecv.support_]
 
-            # Guardar solo las características seleccionadas para el modelo actual
-            self.train[name] = self.train[self.selected_features[name] + ["y"]]
-            if "y" in self.validation.columns:
-                self.validation[name] = self.validation[self.selected_features[name] + ["y"]]
-            else:
-                self.validation[name] = self.validation[self.selected_features[name]]
-            self.test[name] = self.test[self.selected_features[name]]
-
-    def calculate_shap_values(self):
-        # Asegúrate de que esta función se llama después de entrenar los modelos
-        shap_values = {}
-        for name, model in self.models.items():
-            # Aquí necesitarías tener la librería SHAP instalada y luego importarla
-            import shap
-            explainer = shap.Explainer(model)
-            X_train = self.train[name].drop("y", axis=1)
-            shap_values[name] = explainer.shap_values(X_train)
-        
-        return shap_values
+        # Keep only selected features
+        self.train = self.train[["y"] + list(selected_features)]
+        self.validation = (
+            self.validation[["y"] + list(selected_features)]
+            if "y" in self.validation.columns
+            else self.validation[list(selected_features)]
+        )
+        self.test = self.test[list(selected_features)]
 
     def train_models(self):
         self.preprocess_data()
