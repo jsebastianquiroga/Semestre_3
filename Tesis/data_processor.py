@@ -1,3 +1,7 @@
+import numpy as np
+import pandas as pd
+from datetime import datetime
+
 class ClasePrediccion:
     def __init__(self, df, meses_a_predecir):
         self.df = df
