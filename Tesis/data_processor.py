@@ -22,20 +22,21 @@ class ClasePrediccion:
     def obtener_observaciones(self):
         self.df["ds"] = pd.to_datetime(self.df["ds"])
         ultima_fecha = self.df["ds"].max()
-        ultimos_meses = self.df[self.df["ds"] >= ultima_fecha - pd.DateOffset(months=6)]
+        # Seleccionamos los últimos 6 meses para considerarlos como un semestre
+        ultimo_semestre = self.df[self.df["ds"] >= ultima_fecha - pd.DateOffset(months=6)]
         max_time_idx = self.df["time_idx"].max()
         dataframes_prediccion = []
-        for mes in range(1, self.meses_a_predecir + 1):
-            fechas_a_predecir = ultima_fecha + MonthBegin(mes)
-            time_idx_predecir = max_time_idx + mes
-            df_prediccion_mes = pd.DataFrame(
+        for semestre in range(1, self.meses_a_predecir // 6 + 1):
+            fechas_a_predecir = ultima_fecha + MonthBegin(semestre * 6)
+            time_idx_predecir = max_time_idx + semestre * 6
+            df_prediccion_semestre = pd.DataFrame(
                 {
-                    "unique_id": ultimos_meses["unique_id"].unique(),
+                    "unique_id": ultimo_semestre["unique_id"].unique(),
                     "ds": fechas_a_predecir,
                     "time_idx": time_idx_predecir,
                 }
             )
-            dataframes_prediccion.append(df_prediccion_mes)
+            dataframes_prediccion.append(df_prediccion_semestre)
         self.df_prediccion = pd.concat(dataframes_prediccion)
 
     def join_dataframes(self):
@@ -44,18 +45,14 @@ class ClasePrediccion:
         )
         self.df_final["ano"] = self.df_final["ds"].dt.year - 2009
         self.df_final["year"] = self.df_final["ds"].dt.year
-        # max_time_idx = self.df['time_idx'].max()
-        # self.df_final['time_idx'] = range(max_time_idx + 1, max_time_idx + 1 + len(self.df_final))
-        self.df_final["mes"] = self.df_final["ds"].dt.month
-
-    def get_train_dataframe(self):
-        return self.df
+        # Aquí calculamos el semestre en lugar del mes
+        self.df_final['semestre'] = (self.df_final['ds'].dt.month - 1) // 6 + 1
 
     def get_test_dataframe(self):
         self.df_final = self.df_final[
             [
                 "ano",
-                "semestre",
+                "semestre",  # Asegúrate de incluir 'semestre' en lugar de 'mes'
                 "Rectoria",
                 "Modalidad",
                 "objetivo",
@@ -67,9 +64,9 @@ class ClasePrediccion:
                 "time_idx",
             ]
         ]
-        # self.df_final['y'] = 0
-
         return self.df_final
+    def get_train_dataframe(self):
+        return self.df
 
     def get_combined_dataframe(self):
         return pd.concat([self.df, self.df_final])
