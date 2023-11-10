@@ -5,9 +5,9 @@ from pandas.tseries.offsets import MonthBegin
 
 
 class ClasePrediccion:
-    def __init__(self, df, meses_a_predecir):
+    def __init__(self, df, semestres_a_predecir):
         self.df = df
-        self.meses_a_predecir = meses_a_predecir
+        self.semestres_a_predecir = semestres_a_predecir
 
     def crear_dataframe_unico(self):
         self.df_unico = self.df.copy()
@@ -28,23 +28,25 @@ class ClasePrediccion:
     def obtener_observaciones(self):
         self.df["ds"] = pd.to_datetime(self.df["ds"])
         ultima_fecha = self.df["ds"].max()
-        # Seleccionamos los últimos 6 meses para considerarlos como un semestre
-        ultimo_semestre = self.df[self.df["ds"] >= ultima_fecha - pd.DateOffset(months=6)]
         max_time_index = self.df["time_index"].max()
         dataframes_prediccion = []
-        for semestre in range(1, self.meses_a_predecir // 6 + 1):
+        # Se modifica el bucle para iterar sobre semestres en lugar de meses
+        for semestre in range(1, self.semestres_a_predecir + 1):
+            # Añadir 6 meses al final de la fecha para obtener el próximo semestre
             fechas_a_predecir = ultima_fecha + MonthBegin(semestre * 6)
+            # Aumentar el índice de tiempo por semestre (6 meses)
             time_index_predecir = max_time_index + semestre * 6
             df_prediccion_semestre = pd.DataFrame(
                 {
-                    "unique_id": ultimo_semestre["unique_id"].unique(),
-                    "ds": fechas_a_predecir,
+                    "unique_id": self.df["unique_id"].unique(),
+                    "ds": [fechas_a_predecir] * len(self.df["unique_id"].unique()),
                     "time_index": time_index_predecir,
                 }
             )
             dataframes_prediccion.append(df_prediccion_semestre)
         self.df_prediccion = pd.concat(dataframes_prediccion)
 
+    
     def join_dataframes(self):
         self.df_final = pd.merge(
             self.df_prediccion, self.df_unico, on="unique_id", how="left"
