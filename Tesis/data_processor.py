@@ -28,16 +28,16 @@ class ClasePrediccion:
         ultima_fecha = self.df["ds"].max()
         # Seleccionamos los últimos 6 meses para considerarlos como un semestre
         ultimo_semestre = self.df[self.df["ds"] >= ultima_fecha - pd.DateOffset(months=6)]
-        max_time_idx = self.df["time_idx"].max()
+        max_time_index = self.df["time_index"].max()
         dataframes_prediccion = []
         for semestre in range(1, self.meses_a_predecir // 6 + 1):
             fechas_a_predecir = ultima_fecha + MonthBegin(semestre * 6)
-            time_idx_predecir = max_time_idx + semestre * 6
+            time_index_predecir = max_time_index + semestre * 6
             df_prediccion_semestre = pd.DataFrame(
                 {
                     "unique_id": ultimo_semestre["unique_id"].unique(),
                     "ds": fechas_a_predecir,
-                    "time_idx": time_idx_predecir,
+                    "time_index": time_index_predecir,
                 }
             )
             dataframes_prediccion.append(df_prediccion_semestre)
@@ -65,7 +65,7 @@ class ClasePrediccion:
                 "y_std",
                 "upper_limit",
                 "lower_limit",
-                "time_idx",
+                "time_index",
             ]
         ]
         return self.df_final
