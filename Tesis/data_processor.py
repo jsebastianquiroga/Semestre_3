@@ -30,17 +30,17 @@ class ClasePrediccion:
         ultima_fecha = self.df["ds"].max()
         max_time_index = self.df["time_index"].max()
         dataframes_prediccion = []
-        # Se modifica el bucle para iterar sobre semestres en lugar de meses
+        # Se ajusta el bucle para iterar sobre semestres
         for semestre in range(1, self.semestres_a_predecir + 1):
-            # Añadir 6 meses al final de la fecha para obtener el próximo semestre
-            fechas_a_predecir = ultima_fecha + MonthBegin(semestre * 6)
-            # Aumentar el índice de tiempo por semestre (6 meses)
+            # Añadir 6 meses por cada semestre a predecir
+            fechas_a_predecir = ultima_fecha + pd.DateOffset(months=semestre * 6)
+            # Incrementar el índice de tiempo en 6 por cada semestre
             time_index_predecir = max_time_index + semestre * 6
             df_prediccion_semestre = pd.DataFrame(
                 {
                     "unique_id": self.df["unique_id"].unique(),
                     "ds": [fechas_a_predecir] * len(self.df["unique_id"].unique()),
-                    "time_index": time_index_predecir,
+                    "time_index": [time_index_predecir] * len(self.df["unique_id"].unique()),
                 }
             )
             dataframes_prediccion.append(df_prediccion_semestre)
@@ -51,10 +51,11 @@ class ClasePrediccion:
         self.df_final = pd.merge(
             self.df_prediccion, self.df_unico, on="unique_id", how="left"
         )
-        self.df_final["ano"] = self.df_final["ds"].dt.year - 2009
+        # Aquí se corrige el cálculo del año y semestre
         self.df_final["year"] = self.df_final["ds"].dt.year
-        # Aquí calculamos el semestre en lugar del mes
         self.df_final['semestre'] = (self.df_final['ds'].dt.month - 1) // 6 + 1
+        self.df_final["ano"] = self.df_final["year"] - 2009
+        
 
     def get_test_dataframe(self):
         self.df_final = self.df_final[
