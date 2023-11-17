@@ -104,10 +104,9 @@ class ModelEvaluator:
 
     def add_bagging_variables(self, df):
         df = df.copy()
-        # df["y_promedio"] = df[self.models].median(axis=1)
-        df["y_promedio"] = df[self.models].mean(axis=1)
-        df["y_25"] = df[self.models].quantile(0.25, axis=1)
-        df["y_75"] = df[self.models].quantile(0.75, axis=1)
+        df["y_promedio"] = df[self.models].median(axis=1).round(0).astype(int)
+        df["y_25"] = df[self.models].quantile(0.25, axis=1).round(0).astype(int)
+        df["y_75"] = df[self.models].quantile(0.75, axis=1).round(0).astype(int)
         return df
         
     def evaluate_models(self):
